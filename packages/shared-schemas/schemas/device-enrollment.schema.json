@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://logclean.local/schemas/device-enrollment.schema.json",
+  "title": "DeviceEnrollmentRequest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "enrollment_token",
+    "extension_version",
+    "browser_family",
+    "os_family",
+    "managed_device"
+  ],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "enrollment_token": { "type": "string" },
+    "extension_version": { "type": "string" },
+    "browser_family": { "type": "string" },
+    "os_family": { "type": "string" },
+    "managed_device": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

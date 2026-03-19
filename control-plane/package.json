@@ -1,0 +1,12 @@
+{
+  "name": "@logclean/control-plane",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Enterprise control plane scaffold for LogClean",
+  "scripts": {
+    "build": "echo control-plane build scaffolded",
+    "lint": "echo control-plane lint scaffolded",
+    "test": "echo control-plane test scaffolded",
+    "typecheck": "echo control-plane typecheck scaffolded"
+  }
+}

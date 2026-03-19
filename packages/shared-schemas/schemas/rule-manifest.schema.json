@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://logclean.local/schemas/rule-manifest.schema.json",
+  "title": "RuleManifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "manifest_version",
+    "published_at",
+    "compatible_extension_versions",
+    "rules",
+    "signature"
+  ],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "manifest_version": { "type": "string" },
+    "published_at": { "type": "string" },
+    "compatible_extension_versions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "rules": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "signature": { "type": "string" }
+  },
+  "additionalProperties": false
+}
