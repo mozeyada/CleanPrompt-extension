@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LogClean</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 400px;
+      min-height: 560px;
+      background: #080c14;
+      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+    /* Header */
+    header {
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo { display:flex; align-items:center; gap: 8px; }
+    .logo-icon { font-size: 20px; }
+    .logo-name {
+      font-size: 16px; font-weight: 700;
+      background: linear-gradient(90deg, #3b82f6, #06b6d4);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .logo-sub { font-size: 10px; color: #475569; font-weight: 400; -webkit-text-fill-color: #475569; }
+    .status-badge {
+      font-size: 11px; padding: 3px 10px; border-radius: 20px;
+      background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); color: #34d399;
+    }
+    /* Nav tabs */
+    nav {
+      display: flex; gap: 4px; padding: 10px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .tab {
+      padding: 5px 14px; border-radius: 8px; border: 1px solid transparent;
+      background: transparent; color: #64748b; font-family: 'Inter', sans-serif;
+      font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+    }
+    .tab:hover { color: #e2e8f0; }
+    .tab.active { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.12); color: #e2e8f0; }
+    /* Panels */
+    .panel { display: none; padding: 14px; flex-direction: column; gap: 10px; }
+    .panel.active { display: flex; }
+    /* Label */
+    .lbl {
+      font-size: 10px; font-weight: 600; color: #64748b;
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px;
+    }
+    /* Textarea */
+    textarea {
+      width: 100%; height: 130px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 10px; color: #e2e8f0;
+      font-family: 'JetBrains Mono', monospace; font-size: 11.5px; line-height: 1.7;
+      padding: 10px 12px; resize: vertical; outline: none; transition: border-color 0.15s;
+      caret-color: #06b6d4;
+    }
+    textarea:focus { border-color: rgba(59,130,246,0.5); }
+    textarea::placeholder { color: #334155; }
+    /* Buttons */
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      color: #fff; border: none; border-radius: 10px; padding: 10px;
+      font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; box-shadow: 0 0 16px rgba(59,130,246,0.2);
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-secondary {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 8px; color: #94a3b8; font-family: 'Inter', sans-serif;
+      font-size: 11px; font-weight: 500; padding: 5px 10px; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-secondary:hover { border-color: rgba(255,255,255,0.18); color: #e2e8f0; }
+    .btn-green {
+      flex: 1; background: linear-gradient(135deg, #059669, #10b981);
+      color: #fff; border: none; border-radius: 10px; padding: 10px;
+      font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-green:disabled { opacity: 0.4; cursor: not-allowed; background: #334155; }
+    /* Row */
+    .row { display: flex; gap: 6px; align-items: center; justify-content: space-between; }
+    /* Summary */
+    #p-summary {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px; padding: 8px 12px;
+      display: none; flex-wrap: wrap; gap: 6px; align-items: center;
+    }
+    #p-summary-count { font-size: 12px; font-weight: 600; }
+    /* Output */
+    #p-output-wrap {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px; padding: 10px 12px; display: none; max-height: 140px; overflow-y: auto;
+    }
+    #p-output {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.8;
+      color: #cbd5e1; white-space: pre-wrap; word-break: break-word;
+    }
+    /* Token */
+    .p-token {
+      display: inline; border-radius: 4px; padding: 1px 4px; border: 1px solid;
+      font-weight: 700; font-size: 10px; cursor: pointer;
+    }
+    /* Pill */
+    .cat-pill {
+      display: inline-flex; align-items: center; font-size: 10px; font-weight: 600;
+      border-radius: 20px; padding: 2px 8px; border: 1px solid;
+    }
+    /* Char count */
+    #p-char-count { font-size: 10px; color: #475569; }
+    /* Actions row */
+    #p-actions { display: none; gap: 6px; }
+    /* Settings panel */
+    .settings-section { margin-bottom: 14px; }
+    .settings-title { font-size: 11px; font-weight: 700; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .rule-row {
+      display: flex; align-items: center; gap: 8px; padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; cursor: pointer;
+    }
+    .rule-row input { accent-color: #3b82f6; }
+    .rule-row:last-child { border-bottom: none; }
+    /* Platforms panel */
+    .platform-card {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px; padding: 10px 12px; margin-bottom: 6px;
+    }
+    .platform-icon { font-size: 18px; width: 28px; text-align: center; }
+    .platform-name { font-size: 13px; font-weight: 600; }
+    .platform-status { font-size: 11px; color: #34d399; margin-left: auto; }
+    /* Footer */
+    footer {
+      border-top: 1px solid rgba(255,255,255,0.07);
+      padding: 10px 18px; display: flex; align-items: center; justify-content: space-between;
+    }
+    footer span { font-size: 10px; color: #334155; }
+    .compliance-tags { display: flex; gap: 8px; }
+    .c-tag { font-size: 10px; font-weight: 600; }
+    /* Trust / Privacy panel */
+    .trust-hero {
+      background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(59,130,246,0.08));
+      border: 1px solid rgba(16,185,129,0.2); border-radius: 12px;
+      padding: 16px; text-align: center;
+    }
+    .trust-hero-icon { font-size: 36px; display: block; margin-bottom: 8px; }
+    .trust-hero-title {
+      font-size: 15px; font-weight: 700; color: #e2e8f0; margin-bottom: 4px;
+    }
+    .trust-hero-sub { font-size: 12px; color: #64748b; line-height: 1.5; }
+    .trust-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .trust-card {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px; padding: 10px 12px;
+    }
+    .trust-card-icon { font-size: 18px; display: block; margin-bottom: 5px; }
+    .trust-card-title { font-size: 11px; font-weight: 700; color: #e2e8f0; margin-bottom: 3px; }
+    .trust-card-desc { font-size: 10px; color: #64748b; line-height: 1.4; }
+    .trust-proof {
+      background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px; padding: 10px 12px;
+    }
+    .trust-proof-title { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+    .trust-proof-item {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: 11px; color: #64748b; line-height: 1.5; padding: 4px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .trust-proof-item:last-child { border-bottom: none; }
+    .trust-proof-item .check { color: #34d399; font-size: 12px; flex-shrink: 0; margin-top: 1px; }
+    .compliance-row {
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .comp-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700;
+      border: 1px solid;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <span class="logo-icon">🛡️</span>
+      <div>
+        <div class="logo-name">LogClean</div>
+        <div class="logo-sub">AI-Safe Log Anonymizer</div>
+      </div>
+    </div>
+    <span class="status-badge" title="Raw prompt text stays on device. Managed mode can keep aggregate metadata only.">🔒 Raw Text Local</span>
+  </header>
+
+  <nav>
+    <button class="tab active" data-tab="clean">Clean</button>
+    <button class="tab" data-tab="platforms">Platforms</button>
+    <button class="tab" data-tab="rules">Rules</button>
+    <button class="tab" data-tab="privacy">🔒 Privacy</button>
+  </nav>
+
+  <!-- CLEAN PANEL -->
+  <div id="panel-clean" class="panel active">
+    <div>
+      <div class="lbl">Paste Log</div>
+      <textarea id="p-raw" placeholder="Paste any log, error message, or output here…"></textarea>
+      <div class="row" style="margin-top:5px">
+        <span id="p-char-count">0 chars</span>
+        <div style="display:flex;gap:5px">
+          <button class="btn-secondary" id="p-sample">Sample</button>
+          <button class="btn-secondary" id="p-clear">Clear</button>
+        </div>
+      </div>
+    </div>
+    <button class="btn-primary" id="p-redact-btn">🛡️ Redact Sensitive Data</button>
+    <div id="p-summary">
+      <span id="p-summary-count"></span>
+      <div id="p-summary-cats"></div>
+    </div>
+    <div id="p-output-wrap">
+      <div class="lbl" style="margin-bottom:6px">Sanitized Output <span style="font-size:10px;color:#3b82f6;text-transform:none;letter-spacing:normal;font-weight:400">(click token to reveal)</span></div>
+      <div id="p-output"></div>
+    </div>
+    <div id="p-guidance" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:10px 12px">
+      <div class="lbl" style="margin-bottom:6px">Workflow Guidance</div>
+      <div id="p-guidance-pills" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+      <div id="p-guidance-text" style="font-size:12px;line-height:1.6;color:#cbd5e1"></div>
+    </div>
+    <div id="p-safe-compose-wrap" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:10px 12px">
+      <div class="lbl" style="margin-bottom:6px">Safe Compose Prompt</div>
+      <textarea id="p-safe-compose" readonly style="height:110px"></textarea>
+    </div>
+    <div id="p-actions" class="row" style="padding:0">
+      <button class="btn-secondary" id="p-copy" style="padding:9px 14px;font-size:12px">📋 Copy</button>
+      <button class="btn-secondary" id="p-copy-compose" style="padding:9px 14px;font-size:12px">✨ Copy Safe Compose</button>
+      <button class="btn-green" id="p-open-tab">📤 Open in Tab</button>
+    </div>
+  </div>
+
+  <!-- PLATFORMS PANEL -->
+  <div id="panel-platforms" class="panel">
+    <div class="lbl" style="margin-bottom:8px">Detected AI Platforms (Active Coverage)</div>
+    <div id="platform-list"></div>
+  </div>
+
+  <!-- RULES PANEL -->
+  <div id="panel-rules" class="panel">
+    <div class="lbl" style="margin-bottom:8px">Detection Rules</div>
+    <div id="rules-list"></div>
+  </div>
+
+  <!-- PRIVACY PANEL -->
+  <div id="panel-privacy" class="panel">
+    <div class="trust-hero">
+      <span class="trust-hero-icon">🔒</span>
+      <div class="trust-hero-title">Raw prompts stay on device</div>
+      <div class="trust-hero-sub">LogClean redacts locally first. In managed mode, admins can receive metadata-safe aggregates only, never raw prompt text.</div>
+    </div>
+
+    <div class="trust-grid">
+      <div class="trust-card">
+        <span class="trust-card-icon">🧠</span>
+        <div class="trust-card-title">On-device AI</div>
+        <div class="trust-card-desc">All detection runs locally in your browser tab — not a cloud API.</div>
+      </div>
+      <div class="trust-card">
+        <span class="trust-card-icon">🚫</span>
+        <div class="trust-card-title">No prompt retention</div>
+        <div class="trust-card-desc">The extension does not keep prompt transcripts or reversible values after processing.</div>
+      </div>
+      <div class="trust-card">
+        <span class="trust-card-icon">💾</span>
+        <div class="trust-card-title">Metadata only</div>
+        <div class="trust-card-desc">Managed analytics can keep counts, intent labels, and policy outcomes without storing prompt text.</div>
+      </div>
+      <div class="trust-card">
+        <span class="trust-card-icon">👁️</span>
+        <div class="trust-card-title">Open audit</div>
+        <div class="trust-card-desc">Session metadata lives in local browser storage unless strict mode disables analytics entirely.</div>
+      </div>
+    </div>
+
+    <div class="trust-proof">
+      <div class="trust-proof-title">How we're verifiable</div>
+      <div class="trust-proof-item"><span class="check">✓</span>Prompt cleaning happens locally before any managed analytics event exists</div>
+      <div class="trust-proof-item"><span class="check">✓</span>Extension source is readable and policy actions are inspectable</div>
+      <div class="trust-proof-item"><span class="check">✓</span>Audit log stored in <code style="font-size:10px;color:#38bdf8">chrome.storage.local</code> contains metadata only</div>
+      <div class="trust-proof-item"><span class="check">✓</span>Strict mode keeps the extension local-only with no outbound analytics</div>
+    </div>
+
+    <div>
+      <div class="lbl" style="margin-bottom:6px">Trust posture</div>
+      <div class="compliance-row">
+        <span class="comp-badge" style="color:#34d399;border-color:rgba(52,211,153,0.3);background:rgba(52,211,153,0.08)">✓ Raw text stays local</span>
+        <span class="comp-badge" style="color:#38bdf8;border-color:rgba(56,189,248,0.3);background:rgba(56,189,248,0.08)">✓ Team aggregates only</span>
+        <span class="comp-badge" style="color:#f59e0b;border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.08)">✓ No user drill-down</span>
+        <span class="comp-badge" style="color:#a78bfa;border-color:rgba(167,139,250,0.3);background:rgba(167,139,250,0.08)">✓ Strict mode available</span>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span style="color:#475569">🔒 Raw prompt local · Aggregates optional · No prompt retention</span>
+    <div class="compliance-tags">
+      <span class="c-tag" style="color:#34d399">✓ Local first</span>
+      <span class="c-tag" style="color:#38bdf8">✓ Metadata only</span>
+      <span class="c-tag" style="color:#f59e0b">✓ Strict mode</span>
+    </div>
+  </footer>
+
+  <script src="engine/redactor.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
