@@ -1,5 +1,9 @@
 # LogClean Browser Extension Prototype
 
+> Note: this repository uses `ENTERPRISE_ROADMAP.md` as the canonical plan. `PRODUCTION_ROADMAP.md` was removed as legacy to avoid roadmap drift.
+>
+> Current scope: prototype + enterprise delivery blueprint in progress.
+
 This folder contains the core product artifact: a Manifest V3 browser extension that sanitizes prompts locally before they are sent to AI chat tools.
 
 ## Intended Flow
