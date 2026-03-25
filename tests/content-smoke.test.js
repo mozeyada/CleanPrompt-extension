@@ -348,6 +348,42 @@ test('content smoke intercepts send and auto-redacts before replaying submission
   assert.ok(env.sendButton.clickCount >= 2);
 });
 
+test('content smoke replays a clean send without recursively freezing on the interceptor', async () => {
+  const env = createContentSmokeEnv({
+    hostname: 'chatgpt.com',
+    fixture: 'chatgpt',
+    settings: createManagedSettings(),
+    logcleanGetSummary() {
+      return { total: 0, byCategory: {}, byRisk: {} };
+    },
+    async logcleanRedact() {
+      return {
+        sanitized: 'safe prompt without findings',
+        findings: [],
+        policy_action: 'allow',
+        intent_label: 'other',
+        employee_explanation: 'No sensitive content detected.',
+        safe_compose_prompt: 'safe compose',
+        tokens: {},
+        event_summary: null,
+      };
+    },
+  });
+
+  const content = loadScript('content.js', env.additions);
+  const hooks = content.__cleanpromptContentTest;
+
+  env.input.value = 'safe prompt without findings';
+  hooks.attachSendInterceptor();
+  env.sendButton.click();
+  await new Promise((resolve) => setTimeout(resolve, 50));
+
+  assert.equal(hooks.getInterceptState().open, false);
+  assert.equal(env.input.value, 'safe prompt without findings');
+  assert.equal(env.messages.filter((message) => message.type === 'LOG_AUDIT').length, 0);
+  assert.equal(env.sendButton.clickCount, 2);
+});
+
 test('content smoke requires justification before allowing a justify path to replay send', async () => {
   const env = createContentSmokeEnv({
     hostname: 'chatgpt.com',

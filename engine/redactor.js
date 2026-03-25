@@ -27,7 +27,7 @@ var LOGCLEAN_RULES = [
   { id:'SLACK_TOKEN', label:'Slack Token', category:'Credential', risk:'critical', color:'#f97316',
     pattern:/\b(xox[baprs]-[0-9A-Za-z\-]+)\b/g },
   { id:'OPENAI_KEY', label:'OpenAI Key', category:'Credential', risk:'critical', color:'#f97316',
-    pattern:/\bsk-[A-Za-z0-9]{32,60}\b/g },
+    pattern:/\bsk(?:-[A-Za-z0-9]{32,60}|-(?:live|test)-[A-Za-z0-9]{16,99}|_(?:live|test)_[A-Za-z0-9]{24,99})\b/g },
   { id:'STRIPE_KEY', label:'Stripe Key', category:'Credential', risk:'critical', color:'#f97316',
     pattern:/\b(sk|pk)_(live|test)_[A-Za-z0-9]{24,99}\b/g },
   { id:'JWT_TOKEN', label:'JWT Token', category:'Credential', risk:'high', color:'#fb923c',
@@ -36,22 +36,50 @@ var LOGCLEAN_RULES = [
     pattern:/\bBearer\s+[A-Za-z0-9\-._~+\/]+=*\b/gi },
   { id:'BASIC_AUTH', label:'Basic Auth', category:'Credential', risk:'high', color:'#fb923c',
     pattern:/\bBasic\s+[A-Za-z0-9+\/]+=*\b/gi },
+  { id:'COOKIE_HEADER', label:'Cookie Header', category:'Credential', risk:'high', color:'#fb923c',
+    pattern:/\b(?:cookie|set-cookie)\s*:\s*[^\n]{8,}/gi },
+  { id:'SESSION_ID', label:'Session ID', category:'Credential', risk:'high', color:'#fb923c',
+    pattern:/\b(?:session(?:[_ -]?id)?|sid)\s*[=:]\s*["']?[A-Za-z0-9._~\-]{8,}["']?/gi },
+  { id:'REFRESH_TOKEN', label:'Refresh Token', category:'Credential', risk:'high', color:'#fb923c',
+    pattern:/\brefresh[-_ ]?token\s*[=:]\s*["']?[A-Za-z0-9._~+\-/=]{8,}["']?/gi },
+  { id:'WEBHOOK_SECRET', label:'Webhook Secret', category:'Credential', risk:'high', color:'#fb923c',
+    pattern:/\bwebhook[-_ ]?secret\s*[=:]\s*["']?[A-Za-z0-9._~+\-/=]{8,}["']?/gi },
   { id:'GENERIC_SECRET', label:'Secret / Password', category:'Credential', risk:'high', color:'#fb923c',
-    pattern:/(?:password|passwd|secret|token|api_key|apikey|auth_token|access_token)\s*[=:]\s*["']?([^\s"',;\n]{6,})["']?/gi },
+    pattern:/(?:password|passwd|secret|token|api[-_ ]?key|apikey|auth[-_ ]?token|access[-_ ]?token)\s*[=:]\s*["']?([^\s"',;\n]{6,})["']?/gi },
   { id:'PRIVATE_KEY', label:'Private Key (PEM)', category:'Credential', risk:'critical', color:'#ef4444',
     pattern:/-----BEGIN (?:RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]+?-----END (?:RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----/g },
 
   // ── C. PII ───────────────────────────────────────────────────────────────
+  { id:'PERSON_NAME', label:'Full Name', category:'PII', risk:'medium', color:'#34d399',
+    pattern:/\b(?:full name|customer name|client name|contact name|employee name|user name|name)[ \t]*[=:][ \t]*["']?[A-Z][A-Za-z.'-]+(?:[ \t]+[A-Z][A-Za-z.'-]+){1,3}["']?/gi },
   { id:'EMAIL', label:'Email Address', category:'PII', risk:'medium', color:'#34d399',
     pattern:/\b[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}\b/g },
   { id:'PHONE', label:'Phone Number', category:'PII', risk:'medium', color:'#34d399',
     pattern:/\b(\+?1[-.\ ]?)?\(?\d{3}\)?[-.\ ]\d{3}[-.\ ]\d{4}\b/g },
+  { id:'STREET_ADDRESS', label:'Street Address', category:'PII', risk:'high', color:'#34d399',
+    pattern:/\b(?:address|street address|billing address|shipping address)\s*[=:]\s*["']?\d{1,6}\s+[A-Za-z0-9][A-Za-z0-9.'#,\- ]{4,80}\b/gi },
+  { id:'DATE_OF_BIRTH', label:'Date Of Birth', category:'PII', risk:'high', color:'#34d399',
+    pattern:/\b(?:dob|date of birth|birth date)\s*[=:]\s*["']?(?:\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{4}[\/\-]\d{2}[\/\-]\d{2})["']?/gi },
+  { id:'DRIVER_LICENSE', label:'Driver License', category:'PII', risk:'high', color:'#34d399',
+    pattern:/\b(?:driver'?s?\s+licen[sc]e|dl(?: number)?)\s*[#:=-]?\s*["']?[A-Z0-9\-]{5,20}["']?/gi },
+  { id:'PASSPORT_NUMBER', label:'Passport Number', category:'PII', risk:'high', color:'#34d399',
+    pattern:/\b(?:passport(?: number)?)\s*[#:=-]?\s*["']?[A-Z0-9]{6,12}["']?/gi },
   { id:'SSN', label:'SSN', category:'PII', risk:'critical', color:'#f43f5e',
     pattern:/\b(?!000|666|9\d\d)\d{3}[-\ ]?(?!00)\d{2}[-\ ]?(?!0000)\d{4}\b/g },
 
   // ── D. FINANCIAL / HIPAA / PCI ───────────────────────────────────────────
   { id:'CREDIT_CARD', label:'Credit Card', category:'Financial', risk:'critical', color:'#facc15',
-    pattern:/\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})\b/g },
+    pattern:/\b(?:4\d{3}(?:[ -]?\d{4}){3}|(?:5[1-5]\d{2}|2(?:2[2-9]\d|[3-6]\d{2}|7(?:[01]\d|20)))(?:[ -]?\d{4}){3}|3[47]\d{2}[ -]?\d{6}[ -]?\d{5}|6(?:011|5\d{2})(?:[ -]?\d{4}){3})\b/g },
+  { id:'CARD_EXPIRY', label:'Card Expiry', category:'Financial', risk:'high', color:'#facc15',
+    pattern:/\b(?:exp|expiry|expiration|expires)\s*[=:]\s*["']?(?:0[1-9]|1[0-2])[\/\-](?:\d{2}|\d{4})["']?/gi },
+  { id:'CARD_CVV', label:'Card CVV', category:'Financial', risk:'critical', color:'#facc15',
+    pattern:/\b(?:cvv|cvc|cvn|security code)\s*[=:]\s*["']?\d{3,4}["']?/gi },
+  { id:'BANK_ACCOUNT', label:'Bank Account Number', category:'Financial', risk:'high', color:'#facc15',
+    pattern:/\b(?:bank account|account number|acct(?:ount)?(?: number)?)\s*[=:]\s*["']?\d{6,17}["']?/gi },
+  { id:'ROUTING_NUMBER', label:'Routing Number', category:'Financial', risk:'high', color:'#facc15',
+    pattern:/\b(?:routing number|aba(?: number)?)\s*[=:]\s*["']?\d{9}["']?/gi },
+  { id:'IBAN', label:'IBAN', category:'Financial', risk:'high', color:'#facc15',
+    pattern:/\b(?:iban)\s*[=:]\s*["']?[A-Z]{2}\d{2}[A-Z0-9 ]{11,30}["']?/gi },
   { id:'CRYPTO_ADDRESS', label:'Crypto Wallet', category:'Financial', risk:'high', color:'#facc15',
     pattern:/\b(0x[a-fA-F0-9]{40}|[13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-zA-HJ-NP-Z0-9]{39,59})\b/g },
 
@@ -72,6 +100,12 @@ var LOGCLEAN_RULES = [
     pattern:/\b(?:[Ss]ervice[-_\ ]?)?[Tt]icket[-_\ ]?#?\s*(\d{5,12})\b/g },
   { id:'CW_CLIENT_NAME', label:'CW Client Name', category:'MSP', risk:'medium', color:'#c084fc',
     pattern:/\b[Cc]lient[-_\ ]?[Nn]ame\s*[=:]\s*["']?([A-Za-z0-9 &_.\-]{2,60})["']?(?=\s|,|;|}|$)/g },
+  { id:'CUSTOMER_ID', label:'Customer ID', category:'MSP', risk:'medium', color:'#c084fc',
+    pattern:/\b(?:customer|client)[-_ ]?id\s*[=:]\s*["']?[A-Za-z0-9._\-]{3,40}["']?/gi },
+  { id:'TENANT_ID', label:'Tenant ID', category:'MSP', risk:'medium', color:'#c084fc',
+    pattern:/\btenant[-_ ]?id\s*[=:]\s*["']?[A-Za-z0-9._\-]{3,40}["']?/gi },
+  { id:'TICKET_ID', label:'Ticket ID', category:'MSP', risk:'low', color:'#c084fc',
+    pattern:/\b(?:ticket|case|incident)[-_ ]?(?:id|number|#)?\s*[=:]?\s*["']?(?=[A-Za-z0-9\-]*\d)[A-Za-z0-9\-]{4,24}["']?/gi },
 
   // ── G. MSP STACK — ITGLUE ────────────────────────────────────────────────
   { id:'ITGLUE_API_KEY', label:'ITGlue API Key', category:'MSP', risk:'critical', color:'#a78bfa',
@@ -264,6 +298,38 @@ function logcleanBuildSafeComposePrompt(text, intentLabel) {
   return template.replace('{{text}}', text);
 }
 
+function logcleanNormalizeDigits(value) {
+  return String(value || '').replace(/\D/g, '');
+}
+
+function logcleanPassesLuhn(value) {
+  var digits = logcleanNormalizeDigits(value);
+  if (digits.length < 13 || digits.length > 19) return false;
+
+  var sum = 0;
+  var shouldDouble = false;
+  for (var index = digits.length - 1; index >= 0; index -= 1) {
+    var digit = parseInt(digits.charAt(index), 10);
+    if (shouldDouble) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+    shouldDouble = !shouldDouble;
+  }
+
+  return sum % 10 === 0;
+}
+
+function logcleanShouldRedactMatch(rule, match) {
+  if (!rule || !match) return false;
+  if (/\[[A-Z0-9_]+_\d+\]/.test(match)) return false;
+  if (rule.id === 'CREDIT_CARD') {
+    return logcleanPassesLuhn(match);
+  }
+  return true;
+}
+
 function logcleanPromptSizeBucket(text) {
   var length = (text || '').length;
   if (length < 220) return 'small';
@@ -342,6 +408,9 @@ async function logcleanRedact(text, enabledIds) {
 
     var regex = new RegExp(rule.pattern.source, rule.pattern.flags);
     output = output.replace(regex, function(match) {
+      if (!logcleanShouldRedactMatch(rule, match)) {
+        return match;
+      }
       if (!findingsMap[rule.id]) {
         findingsMap[rule.id] = {
           id: rule.id,

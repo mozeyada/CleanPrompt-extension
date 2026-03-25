@@ -21,7 +21,7 @@ function createPolicyBundle() {
       active_rule_ids: null,
       bundle_version: '1.2.0-local',
       local_bundle_version: '1.2.0-local',
-      total_rules: 44,
+      total_rules: 61,
       remote_updates_enabled: false,
       stage2_ner_enabled: false,
       fallback_mode: 'bundled_only',
@@ -637,4 +637,104 @@ test('policy resolution escalates financial findings to block', async () => {
   assert.equal(result.policy_action, 'block');
   assert.ok(result.event_summary.sensitivity_categories.includes('Financial'));
   assert.equal(result.event_summary.raw_text_absent, true);
+});
+
+test('redactor catches names, financial variants, session secrets, and labeled ids', async () => {
+  const redactor = loadScript('engine/redactor.js', {
+    chrome: { runtime: { getURL(resource) { return resource; } } },
+  });
+  const policyBundle = createPolicyBundle();
+  const sample = [
+    'Name: John Doe',
+    'Address: 123 Main St, Springfield, IL 62704',
+    'DOB: 1987-09-21',
+    'Driver License: D123-456-7890',
+    'Passport: X1234567',
+    'API key=sk-live-abcdefghijklmnopqrstuvwxyz123456',
+    'Cookie: sessionid=abc123xyz987; csrftoken=qwerty7890',
+    'session_id=sess-1234567890abcdef',
+    'refresh_token=refresh-secret-1234567890',
+    'webhook secret=whsec_demo_secret_1234567890',
+    'Visa card: 4111 1111 1111 1111',
+    'Backup Amex: 3782 822463 10005',
+    'exp=12/29',
+    'cvv=123',
+    'account number=123456789012',
+    'routing number=021000021',
+    'iban=GB82WEST12345698765432',
+    'customer id=CUST-1042',
+    'tenant id=tenant-prod-77',
+    'ticket id=INC-48291',
+  ].join('\n');
+
+  const result = await redactor.logcleanRedact(sample, null, {
+    policyBundle,
+    org_id: 'org_acme_msp',
+    org_name: 'Acme Managed Services',
+    team_id: 'helpdesk',
+    team_name: 'Helpdesk',
+    site: 'chatgpt.com',
+    device_id: 'device-expanded-123',
+    extension_version: '1.2.0-test',
+    policy_version: policyBundle.policy_version,
+    rules_version: policyBundle.rules.bundle_version,
+  });
+
+  assert.match(result.sanitized, /\[PERSON_NAME_1\]/);
+  assert.match(result.sanitized, /\[STREET_ADDRESS_1\]/);
+  assert.match(result.sanitized, /\[DATE_OF_BIRTH_1\]/);
+  assert.match(result.sanitized, /\[DRIVER_LICENSE_1\]/);
+  assert.match(result.sanitized, /\[PASSPORT_NUMBER_1\]/);
+  assert.match(result.sanitized, /\[OPENAI_KEY_1\]/);
+  assert.match(result.sanitized, /\[COOKIE_HEADER_1\]/);
+  assert.match(result.sanitized, /\[SESSION_ID_1\]/);
+  assert.match(result.sanitized, /\[REFRESH_TOKEN_1\]/);
+  assert.match(result.sanitized, /\[WEBHOOK_SECRET_1\]/);
+  assert.match(result.sanitized, /\[CREDIT_CARD_1\]/);
+  assert.match(result.sanitized, /\[CREDIT_CARD_2\]/);
+  assert.match(result.sanitized, /\[CARD_EXPIRY_1\]/);
+  assert.match(result.sanitized, /\[CARD_CVV_1\]/);
+  assert.match(result.sanitized, /\[BANK_ACCOUNT_1\]/);
+  assert.match(result.sanitized, /\[ROUTING_NUMBER_1\]/);
+  assert.match(result.sanitized, /\[IBAN_1\]/);
+  assert.match(result.sanitized, /\[CUSTOMER_ID_1\]/);
+  assert.match(result.sanitized, /\[TENANT_ID_1\]/);
+  assert.match(result.sanitized, /\[TICKET_ID_1\]/);
+
+  assert.equal(result.tokens['[OPENAI_KEY_1]'], 'sk-live-abcdefghijklmnopqrstuvwxyz123456');
+  assert.equal(result.tokens['[CREDIT_CARD_1]'], '4111 1111 1111 1111');
+  assert.equal(result.tokens['[CREDIT_CARD_2]'], '3782 822463 10005');
+
+  assert.equal(result.rule_counts.CREDIT_CARD, 2);
+  assert.ok(result.findings.some((finding) => finding.id === 'PERSON_NAME' && finding.category === 'PII'));
+  assert.ok(result.findings.some((finding) => finding.id === 'OPENAI_KEY' && finding.risk === 'critical'));
+  assert.ok(result.findings.some((finding) => finding.id === 'IBAN' && finding.category === 'Financial'));
+  assert.ok(result.findings.some((finding) => finding.id === 'TICKET_ID' && finding.category === 'MSP'));
+
+  assert.equal(result.policy_action, 'block');
+  assert.ok(result.event_summary.sensitivity_categories.includes('Credential'));
+  assert.ok(result.event_summary.sensitivity_categories.includes('PII'));
+  assert.ok(result.event_summary.sensitivity_categories.includes('Financial'));
+  assert.ok(result.event_summary.sensitivity_categories.includes('MSP'));
+  assert.ok(result.event_summary.rule_ids.includes('PERSON_NAME'));
+  assert.ok(result.event_summary.rule_ids.includes('OPENAI_KEY'));
+  assert.ok(result.event_summary.rule_ids.includes('CREDIT_CARD'));
+  assert.ok(result.event_summary.count_summary.by_category.Financial >= 6);
+});
+
+test('redactor uses Luhn validation for card-like values with separators', async () => {
+  const redactor = loadScript('engine/redactor.js', {
+    chrome: { runtime: { getURL(resource) { return resource; } } },
+  });
+
+  const result = await redactor.logcleanRedact(
+    'Invalid test value 4111 1111 1111 1112 should stay, but 4111-1111-1111-1111 should be cleaned.',
+    null,
+    {}
+  );
+
+  assert.match(result.sanitized, /4111 1111 1111 1112/);
+  assert.match(result.sanitized, /\[CREDIT_CARD_1\]/);
+  assert.equal(result.tokens['[CREDIT_CARD_1]'], '4111-1111-1111-1111');
+  assert.equal(result.rule_counts.CREDIT_CARD, 1);
 });

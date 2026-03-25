@@ -22,7 +22,7 @@ function createDefaultPolicyBundle(config) {
       active_rule_ids: null,
       bundle_version: config.rulesVersion,
       local_bundle_version: config.rulesVersion,
-      total_rules: 44,
+      total_rules: 61,
       remote_updates_enabled: false,
       stage2_ner_enabled: false,
       fallback_mode: 'bundled_only',

@@ -1101,6 +1101,18 @@
 
     var observedSendBtn = null;
 
+    function replaySendButton(btn, delayMs) {
+      if (!btn) return;
+      interceptEnabled = false;
+      setTimeout(function() {
+        try {
+          btn.click();
+        } finally {
+          interceptEnabled = true;
+        }
+      }, delayMs || 0);
+    }
+
     function attachSendInterceptor() {
       var btn = findSendButton();
       if (!btn || btn === observedSendBtn) return;
@@ -1133,8 +1145,7 @@
           strict_mode: runtimeSettings.strictMode,
         });
         if (!result.findings || result.findings.length === 0) {
-          observedSendBtn = null; // detach
-          btn.click();
+          replaySendButton(btn, 0);
           return;
         }
 
@@ -1143,11 +1154,7 @@
           logMetadataEvent(result, 'redact');
           insertIntoInput(result.sanitized, false);
           showToast(sum.total, 'redact');
-          interceptEnabled = false;
-          setTimeout(function() {
-            btn.click();
-            interceptEnabled = true;
-          }, 180);
+          replaySendButton(btn, 180);
           return;
         }
 
@@ -1173,9 +1180,7 @@
       }
       logMetadataEvent(pending.result, pending.result.policy_action === 'justify' ? 'justify' : 'allow', true);
       closeInterceptModal();
-      interceptEnabled = false;
-      pending.sendBtn.click();
-      setTimeout(function() { interceptEnabled = true; }, 200);
+      replaySendButton(pending.sendBtn, 0);
     });
 
     document.getElementById('lc-intercept-redact').addEventListener('click', function() {
@@ -1183,9 +1188,8 @@
       var pending = pendingIntercept;
       logMetadataEvent(pending.result, 'redact');
       closeInterceptModal();
-      interceptEnabled = false;
       insertIntoInput(pending.result.sanitized, false);
-      setTimeout(function() { pending.sendBtn.click(); interceptEnabled = true; }, 200);
+      replaySendButton(pending.sendBtn, 200);
     });
 
     // Poll for send button (it may render after page load)
@@ -1217,6 +1221,7 @@
       openSidebar: openSidebar,
       closeSidebar: closeSidebar,
       attachSendInterceptor: attachSendInterceptor,
+      replaySendButton: replaySendButton,
       getCompatibilityReport: buildCompatibilityReport,
       clearSendBtnInterval: function() {
         clearInterval(sendBtnInterval);
