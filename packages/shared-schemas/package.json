@@ -1,14 +1,20 @@
 {
-  "name": "@logclean/shared-schemas",
+  "name": "@cleanprompt/shared-schemas",
   "version": "0.1.0",
   "private": true,
-  "description": "Shared event and policy schemas for LogClean",
-  "main": "src/index.ts",
+  "description": "Shared event and policy schemas for CleanPrompt",
+  "main": "src/runtime.js",
   "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "require": "./src/runtime.js",
+      "types": "./src/index.ts"
+    }
+  },
   "scripts": {
-    "build": "echo shared-schemas build scaffolded",
-    "lint": "echo shared-schemas lint scaffolded",
-    "test": "echo shared-schemas test scaffolded",
-    "typecheck": "echo shared-schemas typecheck scaffolded"
+    "build": "node scripts/workspace-checks.js build",
+    "lint": "node scripts/workspace-checks.js lint",
+    "test": "node --test test/*.test.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit && node scripts/workspace-checks.js typecheck"
   }
 }

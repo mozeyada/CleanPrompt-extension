@@ -9,7 +9,9 @@ export interface AuditCountSummary {
 export interface AuditEvent {
   schema_version: typeof AUDIT_EVENT_SCHEMA_VERSION;
   org_id: string;
+  org_name?: string;
   team_id?: string;
+  team_name?: string;
   user_id?: string;
   device_id: string;
   extension_version: string;
@@ -25,6 +27,8 @@ export interface AuditEvent {
   prompt_size_bucket: "small" | "medium" | "large";
   timestamp_bucket: string;
   raw_text_absent: true;
+  rotating_actor_id?: string;
+  strict_mode?: boolean;
   justification_required?: boolean;
   justification_provided?: boolean;
 }

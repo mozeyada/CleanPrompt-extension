@@ -1,5 +1,5 @@
 /**
- * LogClean Content Script
+ * CleanPrompt Content Script
  * Injected into: ChatGPT, Claude, Copilot, Gemini
  * - Detects the AI chat input box on the page
  * - Injects a 🛡️ "Clean" button next to it
@@ -16,54 +16,61 @@
   // ── Platform detection ───────────────────────────────────────────────────
   var PLATFORMS = {
     chatgpt: {
+      key: 'chatgpt',
       test: function() { return /openai\.com|chatgpt\.com/.test(location.hostname); },
       name: 'ChatGPT',
-      findInput: function() {
-        return document.querySelector('#prompt-textarea') ||
-               document.querySelector('div[contenteditable="true"][data-id]') ||
-               document.querySelector('textarea[placeholder]');
-      },
-      findToolbar: function() {
-        var input = this.findInput();
-        return input && (input.closest('form') || input.parentElement);
+      inputSelectors: [
+        '#prompt-textarea',
+        'div.ProseMirror[contenteditable="true"]',
+        'div[contenteditable="true"][data-id]',
+        'textarea[data-id]',
+        'textarea[placeholder]',
+      ],
+      resolveToolbar: function(input) {
+        var form = input && input.closest('form');
+        if (form) return { element: form, strategy: 'closest(form)' };
+        return { element: input && input.parentElement || null, strategy: 'parentElement' };
       },
     },
     claude: {
+      key: 'claude',
       test: function() { return /claude\.ai/.test(location.hostname); },
       name: 'Claude',
-      findInput: function() {
-        return document.querySelector('div[contenteditable="true"]') ||
-               document.querySelector('.ProseMirror');
-      },
-      findToolbar: function() {
-        var input = this.findInput();
-        return input && input.parentElement;
+      inputSelectors: [
+        'div[contenteditable="true"]',
+        'div[contenteditable="plaintext-only"]',
+        '.ProseMirror',
+      ],
+      resolveToolbar: function(input) {
+        return { element: input && input.parentElement || null, strategy: 'parentElement' };
       },
     },
     copilot: {
+      key: 'copilot',
       test: function() { return /copilot\.microsoft\.com|bing\.com/.test(location.hostname); },
       name: 'Copilot',
-      findInput: function() {
-        return document.querySelector('textarea#searchbox') ||
-               document.querySelector('textarea[aria-label]') ||
-               document.querySelector('div[contenteditable="true"]');
-      },
-      findToolbar: function() {
-        var input = this.findInput();
-        return input && input.parentElement;
+      inputSelectors: [
+        'textarea#searchbox',
+        'textarea[aria-label]',
+        'textarea[placeholder]',
+        'div[contenteditable="true"]',
+      ],
+      resolveToolbar: function(input) {
+        return { element: input && input.parentElement || null, strategy: 'parentElement' };
       },
     },
     gemini: {
+      key: 'gemini',
       test: function() { return /gemini\.google\.com/.test(location.hostname); },
       name: 'Gemini',
-      findInput: function() {
-        return document.querySelector('.ql-editor') ||
-               document.querySelector('div[contenteditable="true"]') ||
-               document.querySelector('rich-textarea');
-      },
-      findToolbar: function() {
-        var input = this.findInput();
-        return input && input.parentElement;
+      inputSelectors: [
+        '.ql-editor',
+        'rich-textarea div[contenteditable="true"]',
+        'div[contenteditable="true"]',
+        'rich-textarea',
+      ],
+      resolveToolbar: function(input) {
+        return { element: input && input.parentElement || null, strategy: 'parentElement' };
       },
     },
   };
@@ -75,14 +82,203 @@
     return null;
   }
 
+  globalThis.__cleanpromptContentBootstrap = {
+    detectPlatform: detectPlatform,
+  };
+
   var platform = detectPlatform();
   if (!platform) return;
+
+  var SEND_SELECTORS = [
+    'button[data-testid="send-button"]',
+    'button[aria-label="Send prompt"]',
+    'button[aria-label="Send message"]',
+    'button[aria-label="Send"]',
+    'button[type="submit"]',
+  ];
+
+  function isInternalCleanPromptElement(element) {
+    if (!element) return false;
+    if (element.id === 'logclean-sidebar' || element.id === 'lc-intercept-overlay' || element.id === 'logclean-trigger-wrap') {
+      return true;
+    }
+    if (element.id && /^lc-/.test(element.id)) {
+      return true;
+    }
+    return Boolean(
+      element.closest && (
+        element.closest('#logclean-sidebar') ||
+        element.closest('#lc-intercept-overlay') ||
+        element.closest('#logclean-trigger-wrap')
+      )
+    );
+  }
+
+  function findFirstMatchingSelector(selectors, root) {
+    var scope = root || document;
+    var list = selectors || [];
+    for (var index = 0; index < list.length; index += 1) {
+      var selector = list[index];
+      var matches = scope.querySelectorAll(selector);
+      for (var matchIndex = 0; matchIndex < matches.length; matchIndex += 1) {
+        var element = matches[matchIndex];
+        if (isInternalCleanPromptElement(element)) continue;
+        return {
+          element: element,
+          selector: selector,
+          rank: index + 1,
+        };
+      }
+    }
+
+    return {
+      element: null,
+      selector: null,
+      rank: null,
+    };
+  }
+
+  function resolveInputCandidate() {
+    return findFirstMatchingSelector(platform.inputSelectors);
+  }
+
+  function getPlatformInput() {
+    return resolveInputCandidate().element;
+  }
+
+  function resolveToolbarCandidate(inputCandidate) {
+    var inputElement = inputCandidate && Object.prototype.hasOwnProperty.call(inputCandidate, 'element')
+      ? inputCandidate.element
+      : inputCandidate || null;
+    if (!platform.resolveToolbar) {
+      return {
+        element: inputElement && inputElement.parentElement || null,
+        strategy: 'parentElement',
+      };
+    }
+    return platform.resolveToolbar(inputElement) || {
+      element: null,
+      strategy: 'unknown',
+    };
+  }
+
+  function getPlatformToolbar() {
+    return resolveToolbarCandidate(resolveInputCandidate()).element;
+  }
+
+  function resolveSendButtonCandidate(root) {
+    var result = findFirstMatchingSelector(SEND_SELECTORS, root || document);
+    if (!result.element && root) {
+      result = findFirstMatchingSelector(SEND_SELECTORS, document);
+    }
+    return result;
+  }
+
+  function calculateCompatibilityConfidence(report) {
+    if (!report.input_detected || !report.trigger_attached) return 'needs_review';
+    if (!report.send_button_detected) return 'partial_path';
+    if ((report.input_selector_rank || 99) > 1 || (report.send_selector_rank || 99) > 1) {
+      return 'fallback_path';
+    }
+    return 'primary_path';
+  }
+
+  var extensionContextActive = true;
+  var extensionContextInvalidationLogged = false;
+
+  function isExtensionContextInvalidMessage(message) {
+    return /Extension context invalidated/i.test(String(message || ''));
+  }
+
+  function markExtensionContextInvalid(source, errorOrMessage) {
+    extensionContextActive = false;
+
+    if (extensionContextInvalidationLogged) return;
+    extensionContextInvalidationLogged = true;
+
+    var details = errorOrMessage && errorOrMessage.message
+      ? errorOrMessage.message
+      : String(errorOrMessage || 'Extension context invalidated');
+
+    console.warn('[CleanPrompt] Extension context invalidated during ' + source + '. Further background calls will be skipped.', details);
+  }
+
+  function getRuntimeLastErrorMessage() {
+    try {
+      return chrome
+        && chrome.runtime
+        && chrome.runtime.lastError
+        && chrome.runtime.lastError.message || '';
+    } catch (error) {
+      if (isExtensionContextInvalidMessage(error && error.message)) {
+        markExtensionContextInvalid('runtime.lastError', error);
+      }
+      return '';
+    }
+  }
+
+  function safeStorageLocalGet(keys, callback) {
+    if (!extensionContextActive) {
+      if (callback) callback({});
+      return false;
+    }
+    if (!chrome || !chrome.storage || !chrome.storage.local || typeof chrome.storage.local.get !== 'function') {
+      if (callback) callback({});
+      return false;
+    }
+
+    try {
+      chrome.storage.local.get(keys, function(data) {
+        if (callback) callback(data || {});
+      });
+      return true;
+    } catch (error) {
+      if (isExtensionContextInvalidMessage(error && error.message)) {
+        markExtensionContextInvalid('storage.local.get', error);
+      }
+      if (callback) callback({});
+      return false;
+    }
+  }
+
+  function safeSendRuntimeMessage(message, callback) {
+    if (!extensionContextActive) {
+      if (callback) callback(null);
+      return false;
+    }
+    if (!chrome || !chrome.runtime || typeof chrome.runtime.sendMessage !== 'function') {
+      if (callback) callback(null);
+      return false;
+    }
+
+    try {
+      chrome.runtime.sendMessage(message, function(response) {
+        var runtimeErrorMessage = getRuntimeLastErrorMessage();
+        if (runtimeErrorMessage) {
+          if (isExtensionContextInvalidMessage(runtimeErrorMessage)) {
+            markExtensionContextInvalid('runtime.sendMessage', runtimeErrorMessage);
+          }
+          if (callback) callback(null);
+          return;
+        }
+
+        if (callback) callback(response);
+      });
+      return true;
+    } catch (error) {
+      if (isExtensionContextInvalidMessage(error && error.message)) {
+        markExtensionContextInvalid('runtime.sendMessage', error);
+      }
+      if (callback) callback(null);
+      return false;
+    }
+  }
 
   // ── Load OTA rule overrides from storage ─────────────────────────────────
   // background.js fetches updated rules every 6h and stores them.
   // We deserialize pattern strings → RegExp and override LOGCLEAN_RULES in-place.
   try {
-    chrome.storage.local.get(['logclean_rules_override'], function(data) {
+    safeStorageLocalGet(['logclean_rules_override'], function(data) {
       if (data.logclean_rules_override && Array.isArray(data.logclean_rules_override)) {
         var overrideRules = data.logclean_rules_override.map(function(r) {
           return {
@@ -97,7 +293,7 @@
         // Replace in-place so logcleanRedact() picks up new rules
         LOGCLEAN_RULES.length = 0;
         overrideRules.forEach(function(r) { LOGCLEAN_RULES.push(r); });
-        console.log('[LogClean] Loaded OTA rules: ' + overrideRules.length + ' rules');
+        console.log('[CleanPrompt] Loaded OTA rules: ' + overrideRules.length + ' rules');
       }
     });
   } catch(e) {
@@ -106,7 +302,7 @@
 
   // ── Insert text & Auto-Submit ───────────────────────────────────────────
   function insertIntoInput(text, autoSubmit = true) {
-    var input = platform.findInput();
+    var input = getPlatformInput();
     if (!input) return;
 
     if (input.tagName === 'TEXTAREA') {
@@ -128,8 +324,7 @@
 
     // Auto-submit logic based on platform
     setTimeout(function() {
-      // ChatGPT / Copilot usually have a visible send button next to the input
-      var sendBtn = platform.findToolbar()?.querySelector('button[aria-label="Send prompt"], button[data-testid="send-button"], button:has(svg)');
+      var sendBtn = resolveSendButtonCandidate(getPlatformToolbar()).element;
       if (sendBtn && !sendBtn.disabled) {
         sendBtn.click();
       } else {
@@ -142,6 +337,12 @@
     }, 150);
   }
 
+  function getPlatformInputText() {
+    var input = getPlatformInput();
+    if (!input) return '';
+    return input.tagName === 'TEXTAREA' ? input.value : input.innerText;
+  }
+
   // ── Build the sidebar HTML ─────────────────────────────────────────────────
   function createSidebar() {
     var el = document.createElement('div');
@@ -150,14 +351,14 @@
       <div id="lc-header">
         <div id="lc-logo">
           <span id="lc-logo-icon">🛡️</span>
-          <span id="lc-logo-text">LogClean</span>
+          <span id="lc-logo-text">CleanPrompt</span>
           <span id="lc-platform-badge">${platform.name}</span>
         </div>
         <button id="lc-close">✕</button>
       </div>
 
       <div id="lc-tabs">
-        <button class="lc-tab lc-tab-active" data-tab="paste">Paste & Clean</button>
+        <button class="lc-tab lc-tab-active" data-tab="paste">Clean Details</button>
         <button class="lc-tab" data-tab="audit">Audit Log</button>
       </div>
 
@@ -169,18 +370,18 @@
       <!-- PASTE TAB -->
       <div id="lc-tab-paste" class="lc-tab-content">
         <div id="lc-input-wrap">
-          <label class="lc-label">Raw Log Input</label>
-          <textarea id="lc-raw-input" placeholder="Paste your log here…&#10;&#10;Supports: Datto · ConnectWise · SentinelOne · ITGlue · WatchGuard · 3CX · UniFi · AWS · Splunk · Datadog"></textarea>
+          <label class="lc-label">Raw Prompt Or Context</label>
+          <textarea id="lc-raw-input" placeholder="Paste your prompt, ticket notes, logs, or technical context here...&#10;&#10;Supports: Datto · ConnectWise · SentinelOne · ITGlue · WatchGuard · 3CX · UniFi · AWS · Splunk · Datadog"></textarea>
           <div id="lc-input-footer">
             <span id="lc-char-count">0 chars</span>
             <div>
-              <button class="lc-btn-secondary" id="lc-load-sample">Sample Log</button>
+              <button class="lc-btn-secondary" id="lc-load-sample">Sample Data</button>
               <button class="lc-btn-secondary" id="lc-clear-btn">Clear</button>
             </div>
           </div>
         </div>
 
-        <button id="lc-redact-btn">🛡️ Redact Sensitive Data</button>
+        <button id="lc-redact-btn">🛡️ Clean Prompt</button>
 
         <!-- Summary bar -->
         <div id="lc-summary" style="display:none">
@@ -211,8 +412,8 @@
         </div>
 
         <div id="lc-actions" style="display:none">
-          <button id="lc-compose-btn">✨ Use Safe Compose</button>
-          <button id="lc-insert-btn">✅ Insert Sanitized Text</button>
+          <button id="lc-compose-btn">✨ Insert Safe Compose</button>
+          <button id="lc-insert-btn">✅ Replace With Clean Text</button>
         </div>
 
         <!-- Findings Report -->
@@ -269,21 +470,69 @@
     wrapper.id = 'logclean-trigger-wrap';
     var btn = document.createElement('button');
     btn.id = 'logclean-trigger';
-    btn.title = 'Scrub logs before sending to AI';
+    btn.title = 'Clean your current prompt in place. Shift+Click for the review panel.';
     btn.innerHTML = '🛡️ Clean';
     wrapper.appendChild(btn);
     return wrapper;
   }
 
   function getAttachContainer() {
-    var input = platform.findInput();
-    if (!input) return null;
-    return platform.findToolbar() || input.closest('form') || input.parentElement;
+    var inputCandidate = resolveInputCandidate();
+    if (!inputCandidate.element) return null;
+    return resolveToolbarCandidate(inputCandidate).element;
+  }
+
+  function findSendButton() {
+    return resolveSendButtonCandidate(getAttachContainer()).element;
+  }
+
+  function buildCompatibilityReport(reason) {
+    var inputCandidate = resolveInputCandidate();
+    var input = inputCandidate.element;
+    var toolbarCandidate = resolveToolbarCandidate(inputCandidate);
+    var toolbar = toolbarCandidate.element;
+    var triggerWrap = document.getElementById('logclean-trigger-wrap');
+    var sidebar = document.getElementById('logclean-sidebar');
+    var sendButtonCandidate = resolveSendButtonCandidate(toolbar);
+    var sendButton = sendButtonCandidate.element;
+
+    var report = {
+      host: location.hostname,
+      platform_key: platform.key,
+      platform_name: platform.name,
+      input_detected: Boolean(input),
+      toolbar_detected: Boolean(toolbar),
+      send_button_detected: Boolean(sendButton),
+      trigger_attached: Boolean(triggerWrap && triggerWrap.parentElement === toolbar),
+      sidebar_ready: Boolean(sidebar),
+      detection_reason: reason || 'runtime',
+      input_selector: inputCandidate.selector,
+      input_selector_rank: inputCandidate.rank,
+      toolbar_strategy: toolbarCandidate.strategy || null,
+      send_selector: sendButtonCandidate.selector,
+      send_selector_rank: sendButtonCandidate.rank,
+      attachment_container_tag: toolbar && toolbar.tagName ? toolbar.tagName.toLowerCase() : null,
+      ts: new Date().toISOString(),
+    };
+    report.compatibility_confidence = calculateCompatibilityConfidence(report);
+    return report;
+  }
+
+  function reportPlatformHealth(reason) {
+    var report = buildCompatibilityReport(reason);
+    safeSendRuntimeMessage({
+      type: 'REPORT_PLATFORM_HEALTH',
+      report: report,
+    });
+    return report;
   }
 
   function attachButtonToInput(btnWrap) {
     var container = getAttachContainer();
-    if (!container) return false;
+    if (!container) {
+      reportPlatformHealth('attach_container_missing');
+      return false;
+    }
 
     if (getComputedStyle(container).position === 'static') {
       container.style.position = 'relative';
@@ -292,6 +541,7 @@
       container.appendChild(btnWrap);
     }
     btnWrap.style.display = '';
+    reportPlatformHealth('trigger_attached');
     return true;
   }
 
@@ -334,10 +584,14 @@
       teamId: 'helpdesk',
       teamName: 'Helpdesk',
       rotatingActorId: 'device-local',
+      deviceId: 'device-local',
+      extensionVersion: '0.0.0',
+      policyVersion: null,
+      rulesVersion: null,
       strictMode: false,
     };
 
-    chrome.runtime.sendMessage({ type: 'GET_SETTINGS' }, function(settings) {
+    safeSendRuntimeMessage({ type: 'GET_SETTINGS' }, function(settings) {
       if (!settings) return;
       runtimeSettings.policyBundle = settings.logclean_policy_bundle || null;
       runtimeSettings.orgId = settings.logclean_policy_bundle && settings.logclean_policy_bundle.org_id || runtimeSettings.orgId;
@@ -346,10 +600,20 @@
       runtimeSettings.teamName = settings.logclean_policy_bundle && settings.logclean_policy_bundle.team_name || runtimeSettings.teamName;
       runtimeSettings.strictMode = Boolean(settings.logclean_policy_bundle && settings.logclean_policy_bundle.strict_mode);
       runtimeSettings.rotatingActorId = settings.rotating_actor_id || runtimeSettings.rotatingActorId;
+      runtimeSettings.deviceId = settings.device_id || runtimeSettings.deviceId;
+      runtimeSettings.extensionVersion = settings.extension_version || runtimeSettings.extensionVersion;
+      runtimeSettings.policyVersion = settings.policy_version || runtimeSettings.policyVersion;
+      runtimeSettings.rulesVersion = settings.rules_version || runtimeSettings.rulesVersion;
+      reportPlatformHealth('settings_loaded');
     });
 
     // ── Toggle sidebar ─────────────────────────────────────────────────────
     function openSidebar() {
+      var livePrompt = getPlatformInputText();
+      if (livePrompt && livePrompt.trim()) {
+        rawInput.value = livePrompt;
+        rawInput.dispatchEvent(new Event('input'));
+      }
       sidebar.classList.add('lc-open');
       sidebarOpen = true;
       document.getElementById('lc-raw-input').focus();
@@ -359,11 +623,60 @@
       sidebarOpen = false;
     }
 
+    async function cleanActivePromptDirectly(triggerButton) {
+      var text = getPlatformInputText().trim();
+      if (!text) {
+        openSidebar();
+        return;
+      }
+
+      var originalLabel = triggerButton.innerHTML;
+      triggerButton.disabled = true;
+      triggerButton.innerHTML = '🛡️ Cleaning…';
+
+      try {
+        var enabledIds = runtimeSettings.policyBundle && runtimeSettings.policyBundle.rules && runtimeSettings.policyBundle.rules.active_rule_ids || null;
+        var result = await logcleanRedact(text, enabledIds, {
+          policyBundle: runtimeSettings.policyBundle,
+          org_id: runtimeSettings.orgId,
+          org_name: runtimeSettings.orgName,
+          team_id: runtimeSettings.teamId,
+          team_name: runtimeSettings.teamName,
+          site: location.hostname,
+          rotating_actor_id: runtimeSettings.rotatingActorId,
+          device_id: runtimeSettings.deviceId,
+          extension_version: runtimeSettings.extensionVersion,
+          policy_version: runtimeSettings.policyVersion,
+          rules_version: runtimeSettings.rulesVersion,
+          strict_mode: runtimeSettings.strictMode,
+        });
+
+        currentResult = result;
+        revealedTokens = {};
+
+        if (!result.findings || result.findings.length === 0) {
+          showToast(0, 'clean');
+          return;
+        }
+
+        insertIntoInput(result.sanitized, false);
+        logMetadataEvent(result, 'redact');
+        showToast(logcleanGetSummary(result.findings).total, 'clean');
+      } finally {
+        triggerButton.disabled = false;
+        triggerButton.innerHTML = originalLabel;
+      }
+    }
+
     var btn = document.getElementById('logclean-trigger');
     btn.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      sidebarOpen ? closeSidebar() : openSidebar();
+      if (e.shiftKey) {
+        sidebarOpen ? closeSidebar() : openSidebar();
+        return;
+      }
+      cleanActivePromptDirectly(btn);
     });
     document.getElementById('lc-close').addEventListener('click', closeSidebar);
 
@@ -433,12 +746,16 @@
         team_name: runtimeSettings.teamName,
         site: location.hostname,
         rotating_actor_id: runtimeSettings.rotatingActorId,
+        device_id: runtimeSettings.deviceId,
+        extension_version: runtimeSettings.extensionVersion,
+        policy_version: runtimeSettings.policyVersion,
+        rules_version: runtimeSettings.rulesVersion,
         strict_mode: runtimeSettings.strictMode,
       });
       currentResult = result;
       revealedTokens = {};
       renderOutput(result);
-      btn2.innerHTML = '🛡️ Redact Sensitive Data';
+      btn2.innerHTML = '🛡️ Clean Prompt';
       btn2.disabled = false;
 
       // Send audit event to background
@@ -596,8 +913,11 @@
       if (!result || !result.event_summary) return;
       var eventSummary = JSON.parse(JSON.stringify(result.event_summary));
       eventSummary.action = action || eventSummary.action;
+      if (eventSummary.justification_required == null) {
+        eventSummary.justification_required = eventSummary.action === 'justify';
+      }
       eventSummary.justification_provided = Boolean(justificationProvided);
-      chrome.runtime.sendMessage({
+      safeSendRuntimeMessage({
         type: 'LOG_AUDIT',
         url: location.hostname,
         redacted_count: eventSummary.count_summary.total,
@@ -647,7 +967,7 @@
       
       // Add a tiny delay so the sidebar animates away before we send the message
       setTimeout(function() {
-        insertIntoInput(text);
+        insertIntoInput(text, false);
       }, 200);
     });
 
@@ -655,7 +975,7 @@
       if (!currentResult) return;
       closeSidebar();
       setTimeout(function() {
-        insertIntoInput(currentResult.safe_compose_prompt || currentResult.sanitized);
+        insertIntoInput(currentResult.safe_compose_prompt || currentResult.sanitized, false);
       }, 200);
     });
 
@@ -671,10 +991,10 @@
 
     // ── Audit log ─────────────────────────────────────────────────────────
     function loadAudit() {
-      chrome.runtime.sendMessage({ type: 'GET_AUDIT_LOG' }, function(log) {
+      safeSendRuntimeMessage({ type: 'GET_AUDIT_LOG' }, function(log) {
         var el = document.getElementById('lc-audit-list');
         if (!log || log.length === 0) {
-          el.innerHTML = '<p style="color:#475569;font-size:13px">No sessions yet. Redact some logs to see history.</p>';
+          el.innerHTML = '<p style="color:#475569;font-size:13px">No sessions yet. Clean some prompts to see history.</p>';
           return;
         }
         el.innerHTML = log.slice(0, 20).map(function(entry) {
@@ -766,7 +1086,7 @@
       toast.innerHTML = 
         '<div class="lc-toast-icon">🛡️</div>' +
         '<div class="lc-toast-content">' +
-          '<div class="lc-toast-title">LogClean Active</div>' +
+          '<div class="lc-toast-title">CleanPrompt Active</div>' +
           '<div class="lc-toast-desc">' + count + ' sensitive item' + (count > 1 ? 's' : '') + ' handled with policy action: ' + (action || 'redact') + '.</div>' +
         '</div>';
       
@@ -779,32 +1099,16 @@
       }, 3500);
     }
 
-    // ── Per-platform send button observer ─────────────────────────────────
-    var SEND_SELECTORS = [
-      'button[data-testid="send-button"]',
-      'button[aria-label="Send prompt"]',
-      'button[aria-label="Send message"]',
-      'button[aria-label="Send"]',
-      'button[type="submit"]',
-    ];
-
-    function findSendButton() {
-      for (var i = 0; i < SEND_SELECTORS.length; i++) {
-        var btn = document.querySelector(SEND_SELECTORS[i]);
-        if (btn && !btn.disabled) return btn;
-      }
-      return null;
-    }
-
     var observedSendBtn = null;
 
     function attachSendInterceptor() {
       var btn = findSendButton();
       if (!btn || btn === observedSendBtn) return;
       observedSendBtn = btn;
+      reportPlatformHealth('send_button_attached');
       btn.addEventListener('click', async function(e) {
-        if (!interceptEnabled || !platform || !platform.findInput) return;
-        var input = platform.findInput();
+        if (!interceptEnabled || !platform) return;
+        var input = getPlatformInput();
         if (!input) return;
         var raw = input.tagName === 'TEXTAREA' ? input.value : input.innerText;
         if (!raw || raw.trim().length < 10) return;
@@ -822,6 +1126,10 @@
           team_name: runtimeSettings.teamName,
           site: location.hostname,
           rotating_actor_id: runtimeSettings.rotatingActorId,
+          device_id: runtimeSettings.deviceId,
+          extension_version: runtimeSettings.extensionVersion,
+          policy_version: runtimeSettings.policyVersion,
+          rules_version: runtimeSettings.rulesVersion,
           strict_mode: runtimeSettings.strictMode,
         });
         if (!result.findings || result.findings.length === 0) {
@@ -883,11 +1191,43 @@
     // Poll for send button (it may render after page load)
     var sendBtnInterval = setInterval(attachSendInterceptor, 1500);
     attachSendInterceptor();
+
+    globalThis.__cleanpromptContentTest = {
+      getPlatformName: function() {
+        return platform && platform.name || null;
+      },
+      isExtensionContextActive: function() {
+        return extensionContextActive;
+      },
+      getRuntimeSettings: function() {
+        return JSON.parse(JSON.stringify(runtimeSettings));
+      },
+      getInterceptState: function() {
+        return {
+          open: Boolean(document.getElementById('lc-intercept-overlay') && document.getElementById('lc-intercept-overlay').style.display !== 'none'),
+          pendingAction: pendingIntercept && pendingIntercept.result && pendingIntercept.result.policy_action || null,
+          preview: document.getElementById('lc-intercept-preview') && document.getElementById('lc-intercept-preview').textContent || '',
+          justificationVisible: Boolean(document.getElementById('lc-intercept-justification-wrap') && document.getElementById('lc-intercept-justification-wrap').style.display !== 'none'),
+        };
+      },
+      isSidebarOpen: function() {
+        return sidebarOpen;
+      },
+      logMetadataEvent: logMetadataEvent,
+      openSidebar: openSidebar,
+      closeSidebar: closeSidebar,
+      attachSendInterceptor: attachSendInterceptor,
+      getCompatibilityReport: buildCompatibilityReport,
+      clearSendBtnInterval: function() {
+        clearInterval(sendBtnInterval);
+      },
+    };
     return true;
   }
 
   function ensureInjection() {
     if (!window.__logclean_initialized && !init()) {
+      reportPlatformHealth('init_retry_pending');
       return;
     }
 
@@ -895,6 +1235,7 @@
     if (triggerWrap) {
       attachButtonToInput(triggerWrap);
     }
+    reportPlatformHealth('ensure_injection');
   }
 
   // ── Wait for page ready ───────────────────────────────────────────────────

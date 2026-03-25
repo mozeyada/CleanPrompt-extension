@@ -1,12 +1,16 @@
 {
-  "name": "@logclean/control-plane",
+  "name": "@cleanprompt/control-plane",
   "private": true,
   "version": "0.1.0",
-  "description": "Enterprise control plane scaffold for LogClean",
+  "description": "Enterprise control plane scaffold for CleanPrompt",
   "scripts": {
-    "build": "echo control-plane build scaffolded",
-    "lint": "echo control-plane lint scaffolded",
-    "test": "echo control-plane test scaffolded",
-    "typecheck": "echo control-plane typecheck scaffolded"
+    "dev": "node src/server.js",
+    "start": "node src/server.js",
+    "demo:seed": "node src/demo-state-cli.js seed",
+    "demo:reset": "node src/demo-state-cli.js reset",
+    "build": "node scripts/workspace-checks.js build",
+    "lint": "node scripts/workspace-checks.js lint",
+    "test": "node --test test/*.test.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit && node scripts/workspace-checks.js typecheck"
   }
 }

@@ -1,5 +1,5 @@
 /**
- * LogClean Redaction Engine — MV3 Compatible (plain IIFE, no ES modules)
+ * CleanPrompt Redaction Engine - MV3 Compatible (plain IIFE, no ES modules)
  * Covers: Network, Credentials, PII, Financial, MSP Stack (Datto, ConnectWise, ITGlue, SentinelOne, WatchGuard, 3CX, UniFi)
  * v1.1 — Added risk levels: critical / high / medium / low
  */
@@ -170,14 +170,14 @@ if (LOGCLEAN_STAGE2_ENABLED && typeof window !== 'undefined' && typeof Worker !=
           else cb.reject(new Error(data.error));
         }
       } else if (data.type === 'STATUS') {
-        console.log('[LogClean Stage-2] NER Engine status:', data.status);
+        console.log('[CleanPrompt Stage-2] NER Engine status:', data.status);
       }
     });
 
     // Initialize the WASM backend in the worker
     nerWorker.postMessage({ type: 'INIT' });
   } catch (err) {
-    console.warn('[LogClean Stage-2] Could not initialize NER Web Worker:', err);
+    console.warn('[CleanPrompt Stage-2] Could not initialize NER Web Worker:', err);
   }
 }
 
@@ -253,7 +253,7 @@ function logcleanBuildExplanation(summary, intentLabel, action) {
     return (summary.byCategory[b] || 0) - (summary.byCategory[a] || 0);
   })[0] || 'data';
 
-  return 'LogClean secured ' + summary.total + ' sensitive item' + (summary.total === 1 ? '' : 's') +
+  return 'CleanPrompt secured ' + summary.total + ' sensitive item' + (summary.total === 1 ? '' : 's') +
     ' before this prompt leaves your device. Most matches were ' + topCategory +
     ' related, the likely workflow is ' + intentLabel.replace(/_/g, ' ') +
     ', and the current policy action is ' + action + '.';
@@ -273,13 +273,20 @@ function logcleanPromptSizeBucket(text) {
 
 function logcleanBuildEventSummary(result, context) {
   var summary = logcleanGetSummary(result.findings);
+  var policyBundle = context.policy_bundle || null;
+  var action = context.action || result.policy_action || 'warn';
   return {
+    schema_version: context.schema_version || '1.0.0',
     org_id: context.org_id || 'org_local',
     org_name: context.org_name || 'Local Workspace',
     team_id: context.team_id || 'unassigned',
     team_name: context.team_name || 'Unassigned',
+    device_id: context.device_id || 'device-local',
+    extension_version: context.extension_version || '0.0.0',
+    policy_version: context.policy_version || policyBundle && policyBundle.policy_version || null,
+    rules_version: context.rules_version || policyBundle && policyBundle.rules && (policyBundle.rules.bundle_version || policyBundle.rules.local_bundle_version) || null,
     site: context.site || 'unknown',
-    action: context.action || result.policy_action || 'warn',
+    action: action,
     intent_label: result.intent_label,
     intent_confidence_bucket: result.intent_confidence_bucket,
     sensitivity_categories: Object.keys(summary.byCategory || {}),
@@ -294,6 +301,7 @@ function logcleanBuildEventSummary(result, context) {
     rotating_actor_id: context.rotating_actor_id || 'device-local',
     strict_mode: Boolean(context.strict_mode),
     raw_text_absent: true,
+    justification_required: Boolean(action === 'justify'),
     justification_provided: Boolean(context.justification_provided),
   };
 }
@@ -383,7 +391,7 @@ async function logcleanRedact(text, enabledIds) {
       output = output.substr(0, r.start) + token + output.substr(r.end);
     });
   } catch (err) {
-    console.warn('[LogClean Stage-2] NER inference failed/timeout:', err);
+    console.warn('[CleanPrompt Stage-2] NER inference failed/timeout:', err);
   }
 
   var findings = Object.values(findingsMap).sort(function(a, b) {
@@ -418,12 +426,18 @@ async function logcleanRedact(text, enabledIds) {
   };
 
   result.event_summary = logcleanBuildEventSummary(result, {
+    schema_version: options.schema_version,
     org_id: options.org_id,
     org_name: options.org_name,
     team_id: options.team_id,
     team_name: options.team_name,
+    device_id: options.device_id,
+    extension_version: options.extension_version,
+    policy_version: options.policy_version,
+    rules_version: options.rules_version,
     site: options.site,
     action: policyAction,
+    policy_bundle: options.policyBundle || null,
     rotating_actor_id: options.rotating_actor_id,
     strict_mode: options.strict_mode,
     justification_provided: options.justification_provided,

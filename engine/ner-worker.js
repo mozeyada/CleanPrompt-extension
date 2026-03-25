@@ -9,6 +9,7 @@ env.useBrowserCache = true;
 // unless cross-origin isolation is fully enabled.
 env.backends.onnx.wasm.numThreads = 1;
 
+/** @type {null | ((text: string, options?: Record<string, unknown>) => Promise<NerWorkerPipelineResult[]>)} */
 let nerPipeline = null;
 let isLoaded = false;
 
@@ -16,6 +17,10 @@ let isLoaded = false;
 // For full GLiNER zero-shot, we would load 'onnx-community/gliner_medium-v2.1' 
 // if supported, or a standard base NER as fallback.
 const MODEL_NAME = 'Xenova/bert-base-NER'; 
+
+function toErrorMessage(err) {
+  return err instanceof Error ? err.message : String(err);
+}
 
 async function loadModel() {
   if (isLoaded) return;
@@ -30,11 +35,13 @@ async function loadModel() {
     isLoaded = true;
     self.postMessage({ type: 'STATUS', status: 'ready' });
   } catch (err) {
-    self.postMessage({ type: 'ERROR', error: err.message });
+    self.postMessage({ type: 'ERROR', error: toErrorMessage(err) });
   }
 }
 
-self.addEventListener('message', async (e) => {
+self.addEventListener('message', async (
+  /** @type {MessageEvent<NerWorkerRequest>} */ e
+) => {
   const { type, id, text, labels } = e.data;
 
   if (type === 'INIT') {
@@ -53,6 +60,7 @@ self.addEventListener('message', async (e) => {
       
       // Transform results into logclean finding format
       // Map B-PER / I-PER etc to generic categories for the demo
+      /** @type {NerWorkerEntity[]} */
       const entities = results.map(r => {
         let cat = 'PII';
         if (r.entity.includes('ORG')) cat = 'Company';
@@ -68,7 +76,9 @@ self.addEventListener('message', async (e) => {
       });
 
       // Post-process to merge adjacent subwords (## tokens)
+      /** @type {NerWorkerEntity[]} */
       const merged = [];
+      /** @type {NerWorkerEntity | null} */
       let current = null;
       for (const ent of entities) {
         if (!current) {
@@ -92,7 +102,7 @@ self.addEventListener('message', async (e) => {
         findings: merged
       });
     } catch (err) {
-      self.postMessage({ type: 'ERROR', id, error: err.message });
+      self.postMessage({ type: 'ERROR', id, error: toErrorMessage(err) });
     }
   }
 });

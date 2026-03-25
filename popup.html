@@ -3,17 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LogClean</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <title>CleanPrompt</title>
   <style>
+    :root {
+      --cleanprompt-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      --cleanprompt-font-mono: "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+    }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       width: 400px;
       min-height: 560px;
       background: #080c14;
       color: #e2e8f0;
-      font-family: 'Inter', sans-serif;
+      font-family: var(--cleanprompt-font-sans);
       overflow-x: hidden;
     }
     /* Header */
@@ -44,7 +46,7 @@
     }
     .tab {
       padding: 5px 14px; border-radius: 8px; border: 1px solid transparent;
-      background: transparent; color: #64748b; font-family: 'Inter', sans-serif;
+      background: transparent; color: #64748b; font-family: var(--cleanprompt-font-sans);
       font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s;
     }
     .tab:hover { color: #e2e8f0; }
@@ -62,7 +64,7 @@
       width: 100%; height: 130px;
       background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
       border-radius: 10px; color: #e2e8f0;
-      font-family: 'JetBrains Mono', monospace; font-size: 11.5px; line-height: 1.7;
+      font-family: var(--cleanprompt-font-mono); font-size: 11.5px; line-height: 1.7;
       padding: 10px 12px; resize: vertical; outline: none; transition: border-color 0.15s;
       caret-color: #06b6d4;
     }
@@ -72,21 +74,22 @@
     .btn-primary {
       background: linear-gradient(135deg, #3b82f6, #06b6d4);
       color: #fff; border: none; border-radius: 10px; padding: 10px;
-      font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+      font-family: var(--cleanprompt-font-sans); font-size: 13px; font-weight: 600;
       cursor: pointer; transition: all 0.15s; box-shadow: 0 0 16px rgba(59,130,246,0.2);
     }
     .btn-primary:hover { opacity: 0.9; }
     .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
     .btn-secondary {
       background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09);
-      border-radius: 8px; color: #94a3b8; font-family: 'Inter', sans-serif;
+      border-radius: 8px; color: #94a3b8; font-family: var(--cleanprompt-font-sans);
       font-size: 11px; font-weight: 500; padding: 5px 10px; cursor: pointer; transition: all 0.15s;
     }
     .btn-secondary:hover { border-color: rgba(255,255,255,0.18); color: #e2e8f0; }
+    .btn-secondary:disabled { opacity: 0.45; cursor: not-allowed; }
     .btn-green {
       flex: 1; background: linear-gradient(135deg, #059669, #10b981);
       color: #fff; border: none; border-radius: 10px; padding: 10px;
-      font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+      font-family: var(--cleanprompt-font-sans); font-size: 13px; font-weight: 600;
       cursor: pointer; transition: all 0.15s;
     }
     .btn-green:disabled { opacity: 0.4; cursor: not-allowed; background: #334155; }
@@ -105,7 +108,7 @@
       border-radius: 10px; padding: 10px 12px; display: none; max-height: 140px; overflow-y: auto;
     }
     #p-output {
-      font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.8;
+      font-family: var(--cleanprompt-font-mono); font-size: 11px; line-height: 1.8;
       color: #cbd5e1; white-space: pre-wrap; word-break: break-word;
     }
     /* Token */
@@ -139,7 +142,11 @@
     }
     .platform-icon { font-size: 18px; width: 28px; text-align: center; }
     .platform-name { font-size: 13px; font-weight: 600; }
-    .platform-status { font-size: 11px; color: #34d399; margin-left: auto; }
+    .platform-status {
+      font-size: 10px; margin-left: auto; font-weight: 700;
+      padding: 4px 8px; border-radius: 999px; border: 1px solid;
+      white-space: nowrap;
+    }
     /* Footer */
     footer {
       border-top: 1px solid rgba(255,255,255,0.07);
@@ -187,6 +194,63 @@
       padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700;
       border: 1px solid;
     }
+    /* Managed panel */
+    .managed-hero {
+      background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(16,185,129,0.08));
+      border: 1px solid rgba(59,130,246,0.2); border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .managed-hero-title { font-size: 14px; font-weight: 700; color: #e2e8f0; margin-bottom: 4px; }
+    .managed-hero-sub { font-size: 12px; line-height: 1.5; color: #94a3b8; }
+    .managed-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .status-chip {
+      display: inline-flex; align-items: center;
+      padding: 4px 10px; border-radius: 999px; border: 1px solid;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+    }
+    .tone-ok { color: #34d399; border-color: rgba(52,211,153,0.3); background: rgba(52,211,153,0.08); }
+    .tone-warn { color: #f59e0b; border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.08); }
+    .tone-danger { color: #f87171; border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.08); }
+    .tone-info { color: #38bdf8; border-color: rgba(56,189,248,0.3); background: rgba(56,189,248,0.08); }
+    .tone-muted { color: #94a3b8; border-color: rgba(148,163,184,0.2); background: rgba(148,163,184,0.08); }
+    .managed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .managed-card {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px; padding: 12px;
+    }
+    .managed-card.full { grid-column: 1 / -1; }
+    .managed-card-title {
+      font-size: 10px; font-weight: 700; color: #94a3b8;
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px;
+    }
+    .managed-field { display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; }
+    .managed-field:last-child { margin-bottom: 0; }
+    .managed-field-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; }
+    .managed-field-value {
+      font-size: 12px; color: #e2e8f0; line-height: 1.5;
+      word-break: break-word;
+    }
+    .managed-note {
+      background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px; padding: 10px 12px; font-size: 11px; line-height: 1.6; color: #cbd5e1;
+    }
+    .managed-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .managed-actions .btn-secondary, .managed-actions .btn-green, .managed-actions .btn-primary { flex: 1; min-width: 110px; }
+    #managed-action-feedback { min-height: 16px; font-size: 11px; color: #94a3b8; }
+    .managed-helper-list {
+      display: flex; flex-direction: column; gap: 8px;
+      font-size: 11px; line-height: 1.5; color: #cbd5e1;
+    }
+    .managed-helper-item {
+      padding-left: 14px;
+      position: relative;
+    }
+    .managed-helper-item::before {
+      content: '•';
+      position: absolute;
+      left: 0;
+      color: #38bdf8;
+    }
   </style>
 </head>
 <body>
@@ -194,8 +258,8 @@
     <div class="logo">
       <span class="logo-icon">🛡️</span>
       <div>
-        <div class="logo-name">LogClean</div>
-        <div class="logo-sub">AI-Safe Log Anonymizer</div>
+        <div class="logo-name">CleanPrompt</div>
+        <div class="logo-sub">Privacy-First AI Prompt Protection</div>
       </div>
     </div>
     <span class="status-badge" title="Raw prompt text stays on device. Managed mode can keep aggregate metadata only.">🔒 Raw Text Local</span>
@@ -204,6 +268,7 @@
   <nav>
     <button class="tab active" data-tab="clean">Clean</button>
     <button class="tab" data-tab="platforms">Platforms</button>
+    <button class="tab" data-tab="managed">Managed</button>
     <button class="tab" data-tab="rules">Rules</button>
     <button class="tab" data-tab="privacy">🔒 Privacy</button>
   </nav>
@@ -211,8 +276,8 @@
   <!-- CLEAN PANEL -->
   <div id="panel-clean" class="panel active">
     <div>
-      <div class="lbl">Paste Log</div>
-      <textarea id="p-raw" placeholder="Paste any log, error message, or output here…"></textarea>
+      <div class="lbl">Paste Prompt Or Context</div>
+      <textarea id="p-raw" placeholder="Paste a prompt, ticket notes, logs, client context, or technical output here..."></textarea>
       <div class="row" style="margin-top:5px">
         <span id="p-char-count">0 chars</span>
         <div style="display:flex;gap:5px">
@@ -221,7 +286,7 @@
         </div>
       </div>
     </div>
-    <button class="btn-primary" id="p-redact-btn">🛡️ Redact Sensitive Data</button>
+    <button class="btn-primary" id="p-redact-btn">🛡️ Clean Prompt</button>
     <div id="p-summary">
       <span id="p-summary-count"></span>
       <div id="p-summary-cats"></div>
@@ -248,8 +313,100 @@
 
   <!-- PLATFORMS PANEL -->
   <div id="panel-platforms" class="panel">
-    <div class="lbl" style="margin-bottom:8px">Detected AI Platforms (Active Coverage)</div>
+    <div class="lbl" style="margin-bottom:8px">Supported AI Platforms (Compatibility Evidence)</div>
     <div id="platform-list"></div>
+  </div>
+
+  <!-- MANAGED PANEL -->
+  <div id="panel-managed" class="panel">
+    <div class="managed-hero">
+      <div class="managed-hero-title">Managed mode without prompt retention</div>
+      <div class="managed-hero-sub">Employees keep local-first redaction, while owners get enrollment, policy coverage, and metadata-only usage insight without raw prompt text.</div>
+    </div>
+
+    <div class="managed-chip-row">
+      <span class="status-chip tone-muted" id="managed-mode-chip">Local-only mode</span>
+      <span class="status-chip tone-muted" id="managed-enrollment-chip">Enrollment unknown</span>
+      <span class="status-chip tone-muted" id="managed-sync-chip">Sync unknown</span>
+    </div>
+
+    <div class="managed-grid">
+      <div class="managed-card">
+        <div class="managed-card-title">Connection</div>
+        <div class="managed-field">
+          <div class="managed-field-label">Control plane</div>
+          <div class="managed-field-value" id="managed-base-url">Not configured</div>
+        </div>
+        <div class="managed-field">
+          <div class="managed-field-label">Organization</div>
+          <div class="managed-field-value" id="managed-org">Unknown</div>
+        </div>
+        <div class="managed-field">
+          <div class="managed-field-label">Device ID</div>
+          <div class="managed-field-value" id="managed-device-id">Unknown</div>
+        </div>
+      </div>
+
+      <div class="managed-card">
+        <div class="managed-card-title">Runtime</div>
+        <div class="managed-field">
+          <div class="managed-field-label">Extension version</div>
+          <div class="managed-field-value" id="managed-extension-version">Unknown</div>
+        </div>
+        <div class="managed-field">
+          <div class="managed-field-label">Policy version</div>
+          <div class="managed-field-value" id="managed-policy-version">Unknown</div>
+        </div>
+        <div class="managed-field">
+          <div class="managed-field-label">Rules version</div>
+          <div class="managed-field-value" id="managed-rules-version">Unknown</div>
+        </div>
+      </div>
+
+      <div class="managed-card full">
+        <div class="managed-card-title">Managed activity</div>
+        <div class="managed-field">
+          <div class="managed-field-label">Enrollment</div>
+          <div class="managed-field-value" id="managed-enrollment-detail">No enrollment attempt recorded.</div>
+        </div>
+        <div class="managed-field">
+          <div class="managed-field-label">Policy sync</div>
+          <div class="managed-field-value" id="managed-sync-detail">Managed policy sync is disabled.</div>
+        </div>
+        <div class="managed-field">
+          <div class="managed-field-label">Metadata upload</div>
+          <div class="managed-field-value" id="managed-upload-detail">Metadata upload is inactive.</div>
+        </div>
+      </div>
+
+      <div class="managed-card full">
+        <div class="managed-card-title">Founder demo loop</div>
+        <div class="managed-field">
+          <div class="managed-field-label">Recommended next step</div>
+          <div class="managed-field-value" id="managed-demo-next-step">Seed the control plane, then prepare the managed demo from this tab.</div>
+        </div>
+        <div class="managed-field">
+          <div class="managed-field-label">Reset behavior</div>
+          <div class="managed-helper-list">
+            <div class="managed-helper-item" id="managed-demo-reset-note">Reset clears local audit history, enrollment state, and demo toggles while keeping the control-plane connection details.</div>
+            <div class="managed-helper-item" id="managed-demo-flow-note">Prepare managed demo resets locally, enables sync, re-enrolls the device, and pulls the latest policy for a clean pitch flow.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="managed-note" id="managed-insight-summary">Owner insight stays metadata-only by default, with no raw prompt text available in the control plane.</div>
+
+    <div class="managed-actions">
+      <button class="btn-primary" id="managed-prepare-demo-btn">Prepare managed demo</button>
+      <button class="btn-secondary" id="managed-reset-demo-btn">Reset extension demo</button>
+      <button class="btn-secondary" id="managed-enroll-btn">Enroll device</button>
+      <button class="btn-green" id="managed-sync-btn">Sync policy</button>
+      <button class="btn-secondary" id="managed-open-policy">Open policy API</button>
+      <button class="btn-secondary" id="managed-open-overview">Open admin console</button>
+      <button class="btn-secondary" id="managed-open-devices">Open device registry</button>
+    </div>
+    <div id="managed-action-feedback"></div>
   </div>
 
   <!-- RULES PANEL -->
@@ -263,7 +420,7 @@
     <div class="trust-hero">
       <span class="trust-hero-icon">🔒</span>
       <div class="trust-hero-title">Raw prompts stay on device</div>
-      <div class="trust-hero-sub">LogClean redacts locally first. In managed mode, admins can receive metadata-safe aggregates only, never raw prompt text.</div>
+      <div class="trust-hero-sub">CleanPrompt redacts locally first. In managed mode, admins can receive metadata-safe aggregates only, never raw prompt text.</div>
     </div>
 
     <div class="trust-grid">

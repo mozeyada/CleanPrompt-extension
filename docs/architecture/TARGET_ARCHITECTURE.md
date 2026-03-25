@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define the enterprise target architecture for LogClean while preserving the strongest parts of the current prototype.
+Define the enterprise target architecture for CleanPrompt while preserving the strongest parts of the current prototype.
 
 ## 1. Current-State Starting Point
 

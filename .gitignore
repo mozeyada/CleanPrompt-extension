@@ -12,3 +12,12 @@ build/
 coverage/
 
 *.zip
+
+# Local-only planning docs
+CURRENT_STATE_INVENTORY.md
+ENTERPRISE_ROADMAP.md
+IMPLEMENTATION_PLAN.md
+
+# Local control-plane runtime state
+control-plane/data/dev-state.json
+control-plane/control-plane/data/dev-state.json

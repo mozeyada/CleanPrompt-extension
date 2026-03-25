@@ -158,8 +158,11 @@ The current prototype already points in the right direction:
   - builds event summaries from metadata rather than raw text
 - `background.js`
   - stores metadata-oriented audit and device event structures
+  - now sanitizes outbound audit uploads to an allowlisted metadata-only shape
+- `control-plane/src/validators.js`
+  - now rejects prohibited raw-content audit fields at the API boundary
 
-The enterprise implementation should formalize this as shared schemas rather than ad hoc objects.
+The enterprise implementation should continue formalizing this as shared schemas rather than ad hoc objects, but the first privacy enforcement path is now implemented in code and covered by regression tests.
 
 ## 9. Exit Criteria
 

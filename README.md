@@ -1,46 +1,85 @@
-# LogClean Browser Extension Prototype
+# CleanPrompt
 
-> Note: this repository uses `ENTERPRISE_ROADMAP.md` as the canonical plan. `PRODUCTION_ROADMAP.md` was removed as legacy to avoid roadmap drift.
->
-> Current scope: prototype + enterprise delivery blueprint in progress.
+CleanPrompt is a privacy-first browser extension that helps users clean sensitive data from prompts before sending them to AI tools.
 
-This folder contains the core product artifact: a Manifest V3 browser extension that sanitizes prompts locally before they are sent to AI chat tools.
+The current repository includes:
 
-## Intended Flow
+- a Manifest V3 extension for ChatGPT, Claude, Copilot, and Gemini
+- a local redaction engine with policy-aware review and send interception
+- a demo control plane for metadata-only audit and managed-mode workflows
+- shared schemas, verification scripts, and automated tests
 
-1. User pastes content into ChatGPT, Claude, Gemini, or Copilot.
-2. The content script injects a `Clean` action near the prompt box.
-3. The extension redacts sensitive values locally and classifies the likely workflow intent.
-4. The user gets a review step, an explanation, and a Safe Compose prompt.
-5. Only metadata-safe aggregate events are stored locally for admin-style insight.
+## Highlights
 
-## Main Pieces
+- Local-first prompt cleaning with structured findings and tokenized redaction
+- Policy actions such as `allow`, `warn`, `redact`, `justify`, and `block`
+- In-page review flow plus popup-based cleaning and managed-mode controls
+- Metadata-only audit logging designed to avoid raw prompt retention
+- Compatibility reporting for supported AI surfaces
+- Packaging and verification flows for controlled evaluation kits
 
-- `manifest.json`: extension definition, permissions, and match patterns
-- `content.js`: page integration, review/send flow, safe compose, and policy-aware interception
-- `background.js`: local policy bundle, audit/event storage, and trust settings
-- `popup.html` and `popup.js`: extension popup
-- `engine/redactor.js`: regex rule engine, intent classification, safe-compose generation, and event summaries
-- `engine/rules.json`: bundled rules data
+## Repository Layout
 
-## Important Caveats
+- [`manifest.json`](manifest.json): browser extension manifest
+- [`content.js`](content.js): page integration, prompt interception, and review UI
+- [`background.js`](background.js): extension runtime, settings, sync, and audit handling
+- [`popup.html`](popup.html) and [`popup.js`](popup.js): extension popup UI
+- [`engine/redactor.js`](engine/redactor.js): redaction engine and event-summary generation
+- [`control-plane/`](control-plane): local demo control plane and admin console
+- [`packages/shared-schemas/`](packages/shared-schemas): shared contracts and validators
+- [`tests/`](tests): root verification and browser-surface smoke coverage
 
-- DOM selectors for AI sites are fragile and may require regular maintenance.
-- Audit and insight data still stays inside extension storage in this repo; it is not yet synced to the Next admin console.
-- The local policy bundle is real for prototype use, but there is no production admin delivery path yet.
-- Stage-2 NER is intentionally disabled in this build to avoid remote model ambiguity.
+## Quick Start
 
-## Permissions Review
+1. Install dependencies with `npm install`.
+2. Run the local verification suite with `npm run test:root`.
+3. Load the extension unpacked in Chrome or Edge from this repository root.
+4. Optionally start the demo control plane with `node control-plane/src/server.js`.
+5. Seed demo data with `npm run demo:seed`.
 
-Current permissions include:
+Local control-plane state is created under `control-plane/data/dev-state.json` and is intentionally ignored by Git.
 
-- active tab scripting/storage access
-- host access to supported AI sites
+## Common Commands
 
-This build removes the earlier external rule/model hosts so the trust story is cleaner.
+```bash
+npm run test:root
+npm run typecheck
+npm run assets:verify
+npm run qa:pilot
+npm run package:pilot
+npm run artifact:verify
+npm run release:check
+```
 
-## Testing
+## Supported Surfaces
 
-Use the unpacked extension flow in [LOGCLEAN_TEST_PLAN.md](/home/zee/DataAnn/LOGCLEAN_TEST_PLAN.md).
+- ChatGPT
+- Claude
+- Microsoft Copilot
+- Google Gemini
 
-No automated extension test suite was found in this workspace.
+## Project Status
+
+This repository is an actively developed prototype with meaningful runtime behavior, verification coverage, and evaluation tooling. It is suitable for controlled demos and technical evaluation, but it is not presented as a production SaaS release.
+
+- [`STATUS.md`](STATUS.md)
+- [`ROADMAP.md`](ROADMAP.md)
+
+## Documentation
+
+- [`SECURITY.md`](SECURITY.md)
+- [`SUPPLY_CHAIN.md`](SUPPLY_CHAIN.md)
+- [`COMPLIANCE.md`](COMPLIANCE.md)
+- [`docs/commercial/README.md`](docs/commercial/README.md)
+- [`docs/commercial/DEPLOYMENT_GUIDE.md`](docs/commercial/DEPLOYMENT_GUIDE.md)
+- [`docs/commercial/PRIVACY_OVERVIEW.md`](docs/commercial/PRIVACY_OVERVIEW.md)
+- [`docs/commercial/SECURITY_OVERVIEW.md`](docs/commercial/SECURITY_OVERVIEW.md)
+- [`docs/commercial/DEMO_SCRIPT.md`](docs/commercial/DEMO_SCRIPT.md)
+- [`docs/commercial/PILOT_CHECKLIST.md`](docs/commercial/PILOT_CHECKLIST.md)
+- [`docs/commercial/MANUAL_QA_PLAN.md`](docs/commercial/MANUAL_QA_PLAN.md)
+
+## Notes
+
+- `dist/` and `node_modules/` are not committed.
+- Demo/runtime state is kept out of Git.
+- Some internal storage keys still use legacy `logclean_*` names for compatibility.

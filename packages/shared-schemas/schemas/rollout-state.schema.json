@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://logclean.local/schemas/rollout-state.schema.json",
+  "$id": "https://cleanprompt.local/schemas/rollout-state.schema.json",
   "title": "RolloutState",
   "type": "object",
   "required": [

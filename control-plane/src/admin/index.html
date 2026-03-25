@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CleanPrompt Control Plane</title>
+  <link rel="stylesheet" href="/admin/styles.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">CleanPrompt Control Plane</div>
+        <h1>Owner insight without prompt retention</h1>
+        <p>Monitor rollout, review metadata-safe activity, and publish policy updates without exposing employee prompt text.</p>
+        <div id="demo-feedback" class="meta-line">Use seed and reset controls to make demos repeatable.</div>
+      </div>
+      <div class="hero-actions">
+        <button id="refresh-dashboard" class="btn btn-primary">Refresh dashboard</button>
+        <button id="seed-demo-data" class="btn btn-secondary">Seed demo data</button>
+        <button id="reset-demo-data" class="btn btn-secondary">Reset demo state</button>
+        <button id="open-policy-api" class="btn btn-secondary">Open policy API</button>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <section class="card summary-card">
+        <div class="section-head">
+          <div>
+            <div class="section-label">Owner Summary</div>
+            <h2>Metadata-only operational view</h2>
+          </div>
+          <span id="metadata-pill" class="pill pill-safe">Metadata only</span>
+        </div>
+        <div id="summary-stats" class="stats-grid"></div>
+        <div id="distribution-grid" class="distribution-grid"></div>
+      </section>
+
+      <section class="card policy-card">
+        <div class="section-head">
+          <div>
+            <div class="section-label">Policy Management</div>
+            <h2>Publish a local demo policy</h2>
+          </div>
+          <div id="policy-meta" class="meta-line"></div>
+        </div>
+        <form id="policy-form" class="policy-form">
+          <label class="field">
+            <span>Policy version</span>
+            <input id="policy-version" name="policy_version" type="text" />
+          </label>
+          <label class="field">
+            <span>Rules version</span>
+            <input id="rules-version" name="rules_version" type="text" />
+          </label>
+          <label class="field">
+            <span>Default action</span>
+            <select id="default-action" name="default_action"></select>
+          </label>
+          <label class="field checkbox-field">
+            <input id="strict-mode" name="strict_mode" type="checkbox" />
+            <span>Strict mode disables outbound analytics and keeps the extension local-only.</span>
+          </label>
+          <div class="category-grid" id="category-grid"></div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Publish policy</button>
+            <span id="policy-feedback" class="feedback"></span>
+          </div>
+        </form>
+      </section>
+
+      <section class="card devices-card">
+        <div class="section-head">
+          <div>
+            <div class="section-label">Device Registry</div>
+            <h2>Managed endpoint visibility</h2>
+          </div>
+          <div id="device-meta" class="meta-line"></div>
+        </div>
+        <div class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Device</th>
+                <th>Extension</th>
+                <th>Platform</th>
+                <th>Enrolled</th>
+              </tr>
+            </thead>
+            <tbody id="devices-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card events-card">
+        <div class="section-head">
+          <div>
+            <div class="section-label">Recent Activity</div>
+            <h2>Metadata-safe audit trail</h2>
+          </div>
+          <span class="hint">No raw prompts shown</span>
+        </div>
+        <div class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Received</th>
+                <th>Action</th>
+                <th>Intent</th>
+                <th>Categories</th>
+                <th>Device</th>
+              </tr>
+            </thead>
+            <tbody id="events-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card actions-card">
+        <div class="section-head">
+          <div>
+            <div class="section-label">Admin Actions</div>
+            <h2>Operator audit log</h2>
+          </div>
+        </div>
+        <div id="actions-list" class="timeline"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/admin/app.js"></script>
+</body>
+</html>

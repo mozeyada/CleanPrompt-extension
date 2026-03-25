@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "lib": ["ES2020"],
+    "types": ["node"],
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "resolveJsonModule": true,
+    "ignoreDeprecations": "6.0"
+  },
+  "include": [
+    "src/config.js",
+    "src/persistence.js",
+    "src/state.js",
+    "src/server.js",
+    "src/demo-state-cli.js",
+    "src/**/*.d.ts"
+  ]
+}

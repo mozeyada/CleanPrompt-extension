@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://logclean.local/schemas/device-enrollment.schema.json",
+  "$id": "https://cleanprompt.local/schemas/device-enrollment.schema.json",
   "title": "DeviceEnrollmentRequest",
   "type": "object",
   "required": [

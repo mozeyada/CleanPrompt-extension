@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Identify the highest-value assets, trust boundaries, attacker goals, and minimum mitigations for the enterprise implementation of LogClean.
+Identify the highest-value assets, trust boundaries, attacker goals, and minimum mitigations for the enterprise implementation of CleanPrompt.
 
 ## 1. Primary Assets
 

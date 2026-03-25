@@ -1,5 +1,5 @@
 {
-  "name": "logclean-enterprise-workspace",
+  "name": "cleanprompt-enterprise-workspace",
   "private": true,
   "version": "0.1.0",
   "workspaces": [
@@ -8,8 +8,28 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
+    "demo:seed": "npm run demo:seed --workspace @cleanprompt/control-plane",
+    "demo:reset": "npm run demo:reset --workspace @cleanprompt/control-plane",
+    "qa:pilot": "node scripts/pilot-qa-checklist.js",
+    "artifact:verify": "node scripts/verify-evaluation-kit.js",
+    "assets:verify": "node scripts/verify-extension-assets.js",
     "lint": "npm run lint --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "package:pilot": "node scripts/package-evaluation-kit.js",
+    "release:check": "npm run build && npm run lint && npm run typecheck && npm run verify && npm run package:pilot && npm run artifact:verify",
+    "test:syntax": "node --check background.js && node --check content.js && node --check popup.js && node --check control-plane/src/server.js && node --check control-plane/src/validators.js && node --check control-plane/src/admin/app.js && node --check control-plane/src/demo-state-cli.js && node --check packages/shared-schemas/src/runtime.js && node --check scripts/package-evaluation-kit.js && node --check scripts/pilot-qa-checklist.js && node --check scripts/verify-evaluation-kit.js && node --check scripts/verify-extension-assets.js",
+    "test": "npm run test:root && npm run test:workspaces",
+    "test:root": "node --test tests/*.test.js",
+    "test:workspaces": "npm run test --workspaces --if-present",
+    "typecheck:extension-content": "npx tsc -p tsconfig.extension-content.json --noEmit",
+    "typecheck:extension-ner-worker": "npx tsc -p tsconfig.extension-ner-worker.json --noEmit",
+    "typecheck:extension-popup": "npx tsc -p tsconfig.extension-popup.json --noEmit",
+    "typecheck:extension-redactor": "npx tsc -p tsconfig.extension-redactor.json --noEmit",
+    "typecheck:extension-runtime": "npx tsc -p tsconfig.extension-runtime.json --noEmit",
+    "typecheck": "npm run typecheck:extension-runtime && npm run typecheck:extension-content && npm run typecheck:extension-popup && npm run typecheck:extension-redactor && npm run typecheck:extension-ner-worker && npm run typecheck --workspaces --if-present",
+    "verify": "npm run test:syntax && npm run assets:verify && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^6.0.2"
   }
 }

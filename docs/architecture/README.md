@@ -1,6 +1,6 @@
 # Architecture Docs
 
-This folder contains the Gate 0 foundation documents for the LogClean enterprise build.
+This folder contains the Gate 0 foundation documents for the CleanPrompt enterprise build.
 
 These documents are intentionally written against the current repository state:
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define the enterprise identity model for the LogClean control plane and managed extension fleet.
+Define the enterprise identity model for the CleanPrompt control plane and managed extension fleet.
 
 ## 1. Identity Principles
 
